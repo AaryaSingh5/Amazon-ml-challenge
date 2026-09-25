@@ -8,7 +8,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Any, List, Set, Tuple
 
-import joblib
 
 from src.utils.storage import StorageManager
 from src.evaluation.metrics import compute_macro_f05
@@ -186,6 +185,7 @@ def run_training(config: Dict[str, Any], storage: StorageManager) -> Dict[str, A
         
     checkpoints_dir = storage.checkpoints_dir / "latest"
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
+    import joblib
     model_path = checkpoints_dir / "model.joblib"
     
     joblib.dump(model, model_path)
