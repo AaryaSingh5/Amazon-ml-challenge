@@ -98,16 +98,16 @@ stages:
       id: "STAGE_7"
       name: "Feature Engineering"
       required_inputs: ["data/candidates/train_candidates.parquet"]
-      output_artifacts: ["data/features/train_features.parquet"]
+      output_artifacts: ["data/features/train_features.tsv"]
     baseline:
       id: "STAGE_8"
       name: "Rule-Based Similarity Baseline"
-      required_inputs: ["data/features/train_features.parquet"]
+      required_inputs: ["data/features/train_features.tsv"]
       output_artifacts: ["experiments/exp_000_baseline/metrics.json"]
     training:
       id: "STAGE_9"
       name: "First ML Matching Model"
-      required_inputs: ["data/features/train_features.parquet"]
+      required_inputs: ["data/features/train_features.tsv"]
       output_artifacts: ["checkpoints/latest/model.joblib", "experiments/exp_001_first_ml/metrics.json"]
     threshold_optimization:
       id: "STAGE_10"
@@ -117,12 +117,12 @@ stages:
     advanced_modeling:
       id: "STAGE_11"
       name: "Advanced Model Experiments"
-      required_inputs: ["data/features/train_features.parquet"]
+      required_inputs: ["data/features/train_features.tsv"]
       output_artifacts: ["checkpoints/best/model.joblib"]
     hard_negatives:
       id: "STAGE_12"
       name: "Hard Negative Mining & Refinement"
-      required_inputs: ["data/features/train_features.parquet"]
+      required_inputs: ["data/features/train_features.tsv"]
       output_artifacts: ["data/features/train_features_mined.parquet"]
     model_selection:
       id: "STAGE_13"

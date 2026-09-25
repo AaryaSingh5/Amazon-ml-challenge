@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Environment setup and verification script for Kaggle / Colab / Local runtimes.
 
-Verifies GPU acceleration, dependencies, repository state, and storage connectivity.
+Verifies GPU acceleration, dependencies, repository state, storage connectivity,
+and automatically extracts the Kaggle input zip file if present.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import os
 import sys
 import shutil
+import zipfile
 import platform
 import subprocess
 from pathlib import Path
@@ -20,6 +22,28 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.utils.storage import StorageManager
 from src.utils.checkpoints import get_git_commit_hash
+
+
+def extract_kaggle_dataset(zip_path: str | Path, target_dir: str | Path) -> None:
+    """Extracts the Kaggle input zip file to the raw data directory if needed."""
+    zip_path = Path(zip_path)
+    target_dir = Path(target_dir)
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check if raw dataset files are already extracted
+    existing_files = list(target_dir.glob("*.tsv"))
+    if existing_files:
+        print(f"Dataset already extracted in {target_dir} ({len(existing_files)} TSV files found).")
+        return
+
+    if zip_path.exists():
+        print(f"Extracting dataset from {zip_path} to {target_dir}...")
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(target_dir)
+        print("Dataset extraction completed successfully.")
+    else:
+        print(f"Warning: Dataset zip file not found at {zip_path}")
 
 
 def print_system_info():
@@ -43,14 +67,21 @@ def print_system_info():
     except ImportError:
         print("PyTorch is not yet installed in this environment.")
 
-    # Storage paths
+    # Initialize Storage Paths
     storage = StorageManager()
     storage.initialize_directories()
+
     print(f"DATA_ROOT       : {storage.data_root.resolve()}")
     print(f"STORAGE_ROOT    : {storage.storage_root.resolve()}")
     print(f"RAW_DIR         : {storage.raw_dir.resolve()}")
     print(f"Master Zip Path : {storage.gdrive_zip_path}")
     print("=" * 80 + "\n")
+
+    # Automatically extract Kaggle input zip if available
+    extract_kaggle_dataset(
+        zip_path=storage.gdrive_zip_path,
+        target_dir=storage.raw_dir
+    )
 
 
 def setup_environment(install_deps: bool = False):
@@ -60,7 +91,7 @@ def setup_environment(install_deps: bool = False):
             print(f"Installing dependencies from {req_file}...")
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(req_file)], check=True)
             print("Dependencies installed.")
-    
+
     print_system_info()
 
 
