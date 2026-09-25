@@ -1,0 +1,106 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data directories (Master dataset resides in Google Drive)
+data/
+dataset/
+datasets/
+*.zip
+*.tar
+*.gz
+*.tgz
+*.tsv
+*.csv
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.joblib
+
+# Exception: allow template or dummy data files if explicitly versioned in tests/fixtures
+!tests/fixtures/*.tsv
+!tests/fixtures/*.csv
+
+# Checkpoints and models (Stored in Google Drive / persistent external storage)
+checkpoints/
+models/*.pt
+models/*.pth
+models/*.bin
+models/*.onnx
+models/*.safetensors
+*.ckpt
+
+# Output & artifact directories
+output/
+outputs/
+artifacts/
+logs/
+scratch/
+experiments/*/checkpoints/
+experiments/*/predictions/
+experiments/*/artifacts/
+
+# Credentials, secrets, and environment variables
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+token.json
+client_secrets.json
+kaggle.json
+gdrive_creds.json
+
+# IDE / OS specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini

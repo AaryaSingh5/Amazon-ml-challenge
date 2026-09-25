@@ -1,0 +1,18 @@
+# Baseline experiment configuration
+experiment_id: "exp_000_baseline"
+description: "Heuristic weighted similarity baseline on candidate pairs"
+model_type: "weighted_similarity"
+features_used:
+  - "name_jaro_winkler"
+  - "name_token_sort_ratio"
+  - "address_token_set_ratio"
+  - "country_exact_match"
+weights:
+  name_weight: 0.55
+  address_weight: 0.35
+  country_weight: 0.10
+threshold_search:
+  metric: "macro_f0.5"
+  min_threshold: 0.3
+  max_threshold: 0.95
+  step: 0.01

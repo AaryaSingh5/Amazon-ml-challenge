@@ -1,0 +1,189 @@
+# ==============================================================================
+# Amazon ML Challenge - Business Entity Resolution Challenge
+# Master Pipeline Configuration
+# ==============================================================================
+
+pipeline:
+  name: "amazon-ml-entity-resolution"
+  version: "1.0.0"
+  random_seed: 42
+  target_metric: "macro_f0.5"
+  beta: 0.5
+
+# ------------------------------------------------------------------------------
+# Storage & Environment Paths
+# ------------------------------------------------------------------------------
+storage:
+  # Master Google Drive dataset path (as specified in problem setup)
+  gdrive_dataset_zip: "drive/MyDrive/Project file/6ab10eb3b23ba_student_resource.zip"
+  
+  # Local runtime paths (overridable via DATA_ROOT and STORAGE_ROOT env vars)
+  data_root: "data"                  # Local runtime data root (e.g., /kaggle/working/data)
+  storage_root: "artifacts"          # Persistent artifacts root (or Google Drive mounted path)
+  
+  # Structured subdirectories
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  splits_dir: "data/splits"
+  candidates_dir: "data/candidates"
+  features_dir: "data/features"
+  checkpoints_dir: "checkpoints"
+  experiments_dir: "experiments"
+  output_dir: "output"
+  logs_dir: "logs"
+
+# ------------------------------------------------------------------------------
+# Raw Data Files Configuration
+# ------------------------------------------------------------------------------
+dataset:
+  separator: "\t"
+  encoding: "utf-8"
+  files:
+    train_source1: "train_source1.tsv"
+    train_source2: "train_source2.tsv"
+    train_source3: "train_source3.tsv"
+    train_ground_truth: "train_ground_truth.tsv"
+    test_source1: "test_source1.tsv"
+    test_source2: "test_source2.tsv"
+    test_source3: "test_source3.tsv"
+  columns:
+    entity_id: "entity_id"
+    business_name: "business_name"
+    business_address: "business_address"
+    country: "country"
+  country_handling:
+    open_set: true                   # Never restrict/hard-code countries to US/India
+    case_sensitive: false
+
+# ------------------------------------------------------------------------------
+# Stage Control & Artifact Caching
+# ------------------------------------------------------------------------------
+stages:
+  cache_artifacts: true              # If artifact exists and is valid, reuse without recomputation
+  force_recompute: false             # Set true via CLI --force to override caching
+  
+  # Stage Definitions & Required Artifacts
+  definitions:
+    data_audit:
+      id: "STAGE_1"
+      name: "Data Audit"
+      required_inputs: ["data/raw"]
+      output_artifacts: ["artifacts/audit_report.json"]
+    eda:
+      id: "STAGE_2"
+      name: "Exploratory Data Analysis"
+      required_inputs: ["data/raw", "artifacts/audit_report.json"]
+      output_artifacts: ["artifacts/eda_summary.json"]
+    preprocessing:
+      id: "STAGE_3"
+      name: "Normalization & Preprocessing"
+      required_inputs: ["data/raw"]
+      output_artifacts: ["data/processed/train_source1_clean.parquet", "data/processed/train_source2_clean.parquet", "data/processed/train_source3_clean.parquet"]
+    validation:
+      id: "STAGE_4"
+      name: "Validation Split Design"
+      required_inputs: ["data/processed/train_source1_clean.parquet"]
+      output_artifacts: ["data/splits/validation_split.json"]
+    blocking:
+      id: "STAGE_5"
+      name: "Candidate Generation & Blocking"
+      required_inputs: ["data/processed", "data/splits/validation_split.json"]
+      output_artifacts: ["data/candidates/train_candidates.parquet"]
+    candidate_recall:
+      id: "STAGE_6"
+      name: "Candidate Recall Evaluation"
+      required_inputs: ["data/candidates/train_candidates.parquet"]
+      output_artifacts: ["artifacts/candidate_recall_report.json"]
+    features:
+      id: "STAGE_7"
+      name: "Feature Engineering"
+      required_inputs: ["data/candidates/train_candidates.parquet"]
+      output_artifacts: ["data/features/train_features.parquet"]
+    baseline:
+      id: "STAGE_8"
+      name: "Rule-Based Similarity Baseline"
+      required_inputs: ["data/features/train_features.parquet"]
+      output_artifacts: ["experiments/exp_000_baseline/metrics.json"]
+    training:
+      id: "STAGE_9"
+      name: "First ML Matching Model"
+      required_inputs: ["data/features/train_features.parquet"]
+      output_artifacts: ["checkpoints/latest/model.joblib", "experiments/exp_001_first_ml/metrics.json"]
+    threshold_optimization:
+      id: "STAGE_10"
+      name: "Threshold & Singleton Optimization"
+      required_inputs: ["checkpoints/latest/model.joblib"]
+      output_artifacts: ["artifacts/optimal_thresholds.json"]
+    advanced_modeling:
+      id: "STAGE_11"
+      name: "Advanced Model Experiments"
+      required_inputs: ["data/features/train_features.parquet"]
+      output_artifacts: ["checkpoints/best/model.joblib"]
+    hard_negatives:
+      id: "STAGE_12"
+      name: "Hard Negative Mining & Refinement"
+      required_inputs: ["data/features/train_features.parquet"]
+      output_artifacts: ["data/features/train_features_mined.parquet"]
+    model_selection:
+      id: "STAGE_13"
+      name: "Final Model Selection"
+      required_inputs: ["checkpoints/best/model.joblib"]
+      output_artifacts: ["artifacts/final_model_selection.json"]
+    test_inference:
+      id: "STAGE_14"
+      name: "Test Set Inference"
+      required_inputs: ["data/raw/test_source1.tsv", "checkpoints/best/model.joblib"]
+      output_artifacts: ["output/matching_results.tsv", "output/candidate_pairs.tsv"]
+    submission:
+      id: "STAGE_15"
+      name: "Submission Verification & Packaging"
+      required_inputs: ["output/matching_results.tsv", "output/candidate_pairs.tsv"]
+      output_artifacts: ["artifacts/submission_validation_report.json"]
+    reproducibility_package:
+      id: "STAGE_16"
+      name: "Final Reproducibility Package"
+      required_inputs: ["output/matching_results.tsv"]
+      output_artifacts: ["submission_package.zip"]
+
+# ------------------------------------------------------------------------------
+# Candidate Generation / Blocking Config
+# ------------------------------------------------------------------------------
+blocking:
+  max_candidates_per_entity: 100
+  strategies:
+    - "exact_normalized_name"
+    - "exact_normalized_address"
+    - "name_token_jaccard_overlap"
+    - "address_token_overlap"
+    - "character_ngram_minhash"
+    - "country_partitioned_fuzzy"
+
+# ------------------------------------------------------------------------------
+# Model & Evaluation Config
+# ------------------------------------------------------------------------------
+models:
+  baseline:
+    name_weight: 0.55
+    address_weight: 0.35
+    country_weight: 0.10
+    default_threshold: 0.65
+  
+  gbm:
+    model_type: "lightgbm"
+    learning_rate: 0.05
+    n_estimators: 500
+    num_leaves: 31
+    max_depth: -1
+    subsample: 0.8
+    colsample_bytree: 0.8
+    scale_pos_weight: 1.0
+    random_state: 42
+    early_stopping_rounds: 30
+
+evaluation:
+  metric: "macro_f0.5"
+  singleton_handling: "explicit_empty_match_reward"
+  threshold_grid_search:
+    start: 0.20
+    end: 0.95
+    step: 0.02
