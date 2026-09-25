@@ -87,9 +87,11 @@ class StorageManager:
             # Try looking in alternative common locations
             alt_locations = [
                 Path("/content") / target_zip,
+                Path("/content/drive/MyDrive/Project file/6ab10eb3b23ba_student_resource.zip"),
                 Path("/kaggle/input") / target_zip.name,
                 Path("data") / target_zip.name,
                 Path(".") / target_zip.name,
+                Path("c:/Users/Intel/Downloads/archive.zip"),
             ]
             found = False
             for alt in alt_locations:
@@ -100,7 +102,7 @@ class StorageManager:
             if not found:
                 logger.warning(
                     f"Master dataset zip not found at {target_zip}. "
-                    f"Please mount Google Drive or ensure dataset is available at {self.gdrive_zip_path}"
+                    f"Please ensure dataset is available at {self.gdrive_zip_path} or mounted."
                 )
                 return False
 
@@ -108,17 +110,13 @@ class StorageManager:
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         
         with zipfile.ZipFile(target_zip, 'r') as zip_ref:
-            # Extract and flatten if needed
             for member in zip_ref.infolist():
                 filename = Path(member.filename).name
                 if filename.endswith(".tsv") or filename.endswith(".csv"):
                     target_file = self.raw_dir / filename
                     with zip_ref.open(member) as source, open(target_file, "wb") as target:
                         shutil.copyfileobj(source, target)
-                        logger.info(f"Extracted: {filename} -> {target_file}")
-                elif not member.is_dir():
-                    # Extract general files
-                    zip_ref.extract(member, self.raw_dir)
+                        logger.info(f"Extracted: {member.filename} -> {target_file}")
                     
         return self.has_raw_dataset()
 
